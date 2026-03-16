@@ -2,7 +2,7 @@
 
 <img src="./sales-dashboard.png" alt="Dashboard Preview" width="100%" />
 
-A professional dashboard for tracking and analyzing LG Sales Revenue data, featuring an AI-powered Data Analytics Agent for conversational insights, automated chart generation, and interactive data tables.
+A professional dashboard for tracking and analyzing Sales Revenue data, featuring an AI-powered Data Analytics Agent for conversational insights, automated chart generation, and interactive data tables.
 
 ## 🚀 Architecture
 - **Frontend**: React 19 + Vite + Tailwind CSS + Recharts + Vega-Lite
