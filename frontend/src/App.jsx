@@ -123,7 +123,7 @@ const App = () => {
 
       <main className="p-6">
         {activeTab?.type === 'group' ? (
-          <GroupDashboard />
+          <GroupDashboard baselines={baselines} />
         ) : (
           <EntityDashboard 
             key={activeTab?.id} 

@@ -3,7 +3,7 @@ import Scorecard from './Scorecard';
 import RevenueChart from './RevenueChart';
 import { AlertCircle } from 'lucide-react';
 
-const GroupDashboard = () => {
+const GroupDashboard = ({ baselines }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,7 +39,7 @@ const GroupDashboard = () => {
   return (
     <div className="tab-content transition-all duration-300">
       <div className="scorecards-grid">
-        <Scorecard label="LG Group ARR (2025)" value={63.3} subValue="Baseline" />
+        <Scorecard label="LG Group ARR (2025)" value={baselines?.['group'] || 0.0} subValue="Baseline" />
         <Scorecard label="LG Group ARR (2026)" value={data.arr2026 / 1000000} />
       </div>
 
