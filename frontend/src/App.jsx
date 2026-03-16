@@ -7,6 +7,7 @@ import './App.css';
 
 const App = () => {
   const [tabs, setTabs] = useState([]);
+  const [baselines, setBaselines] = useState({});
   const [activeTab, setActiveTab] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -14,14 +15,16 @@ const App = () => {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const response = await fetch('/api/config/tabs');
-        if (!response.ok) throw new Error('Failed to fetch tabs');
+        const response = await fetch('/api/config');
+        if (!response.ok) throw new Error('Failed to fetch config');
         const data = await response.json();
-        setTabs(data);
+        
+        setTabs(data.tabs || []);
+        setBaselines(data.baselines || {});
         
         // Handle initial active tab
         const savedId = localStorage.getItem('activeTabId');
-        const initialTab = (data && data.find(t => t.id === savedId)) || (data && data[0]);
+        const initialTab = (data.tabs && data.tabs.find(t => t.id === savedId)) || (data.tabs && data.tabs[0]);
         setActiveTab(initialTab);
       } catch (err) {
         console.error('Failed to load dashboard configuration:', err);
@@ -126,6 +129,7 @@ const App = () => {
             key={activeTab?.id} 
             entityName={activeTab?.entityName} 
             displayName={activeTab?.label} 
+            baselines={baselines}
           />
         )}
       </main>

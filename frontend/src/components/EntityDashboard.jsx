@@ -3,18 +3,6 @@ import Scorecard from './Scorecard';
 import RevenueChart from './RevenueChart';
 import { AlertCircle } from 'lucide-react';
 
-const BASELINES = {
-  'LG전자': 9.0,
-  'LG유플러스': 9.8,
-  'LG에너지솔루션': 4.5,
-  'LG화학': 0.1,
-  'LGCNS': 6.7,
-  'LG경영개발원AI연구원': 28.8,
-  'LX판토스': 3.6,
-  '서브원': 0.0,
-  'LG생활건강': 0.0
-};
-
 const formatK = (val) => {
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 1,
@@ -22,7 +10,7 @@ const formatK = (val) => {
   }).format(val / 1000);
 };
 
-const EntityDashboard = ({ entityName, displayName }) => {
+const EntityDashboard = ({ entityName, displayName, baselines }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -54,12 +42,12 @@ const EntityDashboard = ({ entityName, displayName }) => {
   if (error) return <div className="chart-card error-box p-6 flex flex-col items-center"><AlertCircle size={40} className="text-danger mb-4" /><p className="font-bold">Error loading {displayName}</p><p className="text-sm text-muted">{error}</p><button onClick={() => setRefreshKey(k => k + 1)} className="run-btn mt-6">Retry</button></div>;
   if (!data) return null;
 
-  const baseline = BASELINES[entityName] || 0.0;
+  const baseline = baselines[entityName] || 0.0;
 
   return (
     <div className="tab-content transition-all duration-300">
       <div className="scorecards-grid">
-        <Scorecard label="LG Group ARR (2025)" value={63.3} subValue="Baseline" />
+        <Scorecard label="LG Group ARR (2025)" value={baselines['group'] || 0.0} subValue="Baseline" />
         <Scorecard label={`${displayName} ARR (2025)`} value={baseline} subValue="Baseline" />
         <Scorecard label="LG Group ARR (2026)" value={(data?.groupArr2026 || 0) / 1000000} />
         <Scorecard label={`${displayName} ARR (2026)`} value={(data.arr2026 || 0) / 1000000} />

@@ -26,21 +26,28 @@ DATA_AGENT_ID = os.getenv("DATA_AGENT_ID")
 BILLING_PROJECT = os.getenv("BILLING_PROJECT")
 LOCATION = os.getenv("LOCATION")
 DASHBOARD_TABS_RAW = os.getenv("DASHBOARD_TABS", "[]")
+DASHBOARD_BASELINES_RAW = os.getenv("DASHBOARD_BASELINES", "{}")
 
-@app.get("/api/config/tabs")
-async def get_tabs_config():
+@app.get("/api/config")
+async def get_config():
     try:
-        # Resolve the JSON string from env
-        # Handle cases where env might wrap it in single quotes
-        tabs_str = DASHBOARD_TABS_RAW.strip()
-        if tabs_str.startswith("'") and tabs_str.endswith("'"):
-            tabs_str = tabs_str[1:-1]
+        # Resolve the JSON strings from env
+        def parse_env_json(raw_str, default):
+            s = raw_str.strip()
+            if s.startswith("'") and s.endswith("'"):
+                s = s[1:-1]
+            return json.loads(s) if s else default
+
+        tabs = parse_env_json(DASHBOARD_TABS_RAW, [])
+        baselines = parse_env_json(DASHBOARD_BASELINES_RAW, {})
         
-        tabs_list = json.loads(tabs_str)
-        return tabs_list
+        return {
+            "tabs": tabs,
+            "baselines": baselines
+        }
     except Exception as e:
-        print(f"DEBUG: Tabs Config Error: {e}", flush=True)
-        return []
+        print(f"DEBUG: Config Error: {e}", flush=True)
+        return {"tabs": [], "baselines": {}}
 
 @app.post("/api/chat/conversation/create")
 async def create_conversation(conversation_id: str = Query("lg-sales-revenue")):
