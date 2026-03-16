@@ -79,3 +79,5 @@ sql/
 **/*.log
 
 cloudrun.sh
+.dockerignore
+.gitignore
