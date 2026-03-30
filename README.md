@@ -1,18 +1,24 @@
 # Sales Revenue Dashboard
 
-<img src="./sales-dashboard.png" alt="Dashboard Preview" width="100%" />
-
 A professional dashboard for tracking and analyzing Sales Revenue data, featuring an AI-powered Data Analytics Agent for conversational insights, automated chart generation, and interactive data tables.
+
+<img src="./dashboard_1.png" alt="Dashboard Preview" width="100%" />
+
+### Converational Analytics (Data Agent)
+<img src="./dashboard_2.png" alt="Dashboard Preview" width="100%" />
 
 ## 🚀 Architecture
 - **Frontend**: React 19 + Vite + Tailwind CSS + Recharts + Vega-Lite
 - **Backend**: FastAPI + Python 3.10
 - **Data Source**: Google Cloud BigQuery
-- **AI Engine**: Google Cloud Gemini Conversational Analytics API (BigQuery Agent)
+- **Dataset** : `bigquery-public-data.thelook_ecommerce`
+- **AI Engine**: Google Cloud Gemini `Conversational Analytics API` (BigQuery Agent)
+
+<img src="./data_agent.png" alt="Architecture Diagram" width="100%" />
 
 ### Architecture Diagram
 
-<img src="./architecture.png" alt="Architecture Diagram" width="100%" />
+<img src="./architecture.png" alt="Architecture Diagram" width="70%" />
 
 
 ---
@@ -27,7 +33,8 @@ A professional dashboard for tracking and analyzing Sales Revenue data, featurin
     BILLING_PROJECT=your_project_id
     LOCATION=global
     DATASET_ID=your_dataset
-    TABLE_ID=your_table
+    DASHBOARD_PASSWORD=
+    GOOGLE_API_USE_MTLS_ENDPOINT=never
     ```
 3.  Install dependencies:
     ```bash
@@ -47,6 +54,7 @@ A professional dashboard for tracking and analyzing Sales Revenue data, featurin
     ```
 3.  Run the development server:
     ```bash
+    export VITE_API_BASE_URL='http://localhost:3001'
     npm run dev
     ```
     *The dashboard will be available at `http://localhost:5173`.*
@@ -66,14 +74,7 @@ gcloud run deploy sales-dashboard \
   --source . \
   --region us-central1 \
   --allow-unauthenticated \
-  --set-env-vars="BILLING_PROJECT=$BILLING_PROJECT,LOCATION=$LOCATION,DATA_AGENT_ID=$DATA_AGENT_ID,DATASET_ID=$DATASET_ID,TABLE_ID=$TABLE_ID"
-```
-
-### Manual Container Build (Optional)
-To build and run the container locally for testing:
-```bash
-docker build -t sales-dashboard .
-docker run -p 8080:8080 -e PORT=8080 sales-dashboard
+  --set-env-vars="BILLING_PROJECT=$BILLING_PROJECT,LOCATION=$LOCATION,DATA_AGENT_ID=$DATA_AGENT_ID,DATASET_ID=$DATASET_ID,DASHBOARD_PASSWORD=$DASHBOARD_PASSWORD,GOOGLE_API_USE_MTLS_ENDPOINT=never"
 ```
 
 ---

@@ -1,39 +1,75 @@
 import React, { useState, useEffect } from 'react';
-import GroupDashboard from './components/GroupDashboard';
-import EntityDashboard from './components/EntityDashboard';
+import { RefreshCw, MessageSquare, Loader2, Lock } from 'lucide-react';
 import ChatPopup from './components/ChatPopup';
-import { RefreshCw, MessageSquare, Loader2 } from 'lucide-react';
+import ExecutiveSummary from './components/ExecutiveSummary';
+import MarketingAnalytics from './components/MarketingAnalytics';
+import WebAnalytics from './components/WebAnalytics';
+import SalesPerformance from './components/SalesPerformance';
 import './App.css';
 
+const TABS = [
+  { id: 'executive', label: 'Executive Summary' },
+  { id: 'marketing', label: 'Customer & Marketing' },
+  { id: 'web', label: 'Web Analytics' },
+  { id: 'sales', label: 'Sales & Product' }
+];
+
 const App = () => {
-  const [tabs, setTabs] = useState([]);
-  const [baselines, setBaselines] = useState({});
-  const [activeTab, setActiveTab] = useState(null);
+  const [activeTab, setActiveTab] = useState(TABS[0]);
   const [loading, setLoading] = useState(true);
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => sessionStorage.getItem('dashboard_auth') === 'true');
+  const [passwordInput, setPasswordInput] = useState('');
+  const [loginError, setLoginError] = useState('');
 
   useEffect(() => {
-    const fetchConfig = async () => {
+    const initializeApp = async () => {
       try {
+        if (!isAuthenticated) {
+          setLoading(false);
+          return;
+        }
+
+        // Just quick verification of auth token/config API although tabs are hardcoded now
         const response = await fetch('/api/config');
         if (!response.ok) throw new Error('Failed to fetch config');
-        const data = await response.json();
-        
-        setTabs(data.tabs || []);
-        setBaselines(data.baselines || {});
         
         // Handle initial active tab
         const savedId = localStorage.getItem('activeTabId');
-        const initialTab = (data.tabs && data.tabs.find(t => t.id === savedId)) || (data.tabs && data.tabs[0]);
+        const initialTab = TABS.find(t => t.id === savedId) || TABS[0];
         setActiveTab(initialTab);
       } catch (err) {
-        console.error('Failed to load dashboard configuration:', err);
+        console.error('Failed to initialize application:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchConfig();
-  }, []);
+    
+    initializeApp();
+  }, [isAuthenticated]);
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const resp = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: passwordInput })
+      });
+      const data = await resp.json();
+      
+      if (data.success) {
+        sessionStorage.setItem('dashboard_auth', 'true');
+        setIsAuthenticated(true);
+        setLoading(true);
+      } else {
+        setLoginError('Invalid Password');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setLoginError('Server connection error.');
+    }
+  };
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -50,21 +86,53 @@ const App = () => {
     }
   };
 
+  const renderActiveView = () => {
+    switch (activeTab.id) {
+      case 'executive': return <ExecutiveSummary />;
+      case 'marketing': return <MarketingAnalytics />;
+      case 'web': return <WebAnalytics />;
+      case 'sales': return <SalesPerformance />;
+      default: return <ExecutiveSummary />;
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-glass-darker">
+      <div className="fixed inset-0 flex items-center justify-center bg-glass-darker z-50">
         <div className="flex flex-col items-center gap-4">
-          <Loader2 className="animate-spin text-red-700" size={48} />
-          <p className="text-muted font-medium text-lg">Initializing Dashboard...</p>
+          <Loader2 className="animate-spin text-primary" size={48} />
+          <p className="text-muted font-medium text-lg">Loading The Look Ecommerce...</p>
         </div>
       </div>
     );
   }
 
-  if (!tabs || tabs.length === 0) {
+  if (!isAuthenticated) {
     return (
-      <div className="flex items-center justify-center h-screen bg-glass-darker">
-        <p className="text-danger font-bold text-xl">Configuration Error: No tabs found.</p>
+      <div className="fixed inset-0 flex items-center justify-center bg-glass-darker z-50">
+        <div className="login-box">
+          <div style={{ width: 80, height: 80, background: 'rgba(165,0,52,0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '8px' }}>
+            <Lock className="text-primary" size={40} />
+          </div>
+          <h2 className="text-2xl font-bold text-white tracking-tight" style={{ margin: 0 }}>Login Required</h2>
+          <p className="text-muted text-sm" style={{ marginTop: '-8px', marginBottom: '16px' }}>대시보드 접속을 위해 비밀번호를 입력해주세요.</p>
+          <form onSubmit={handleLogin} className="login-form">
+            <input
+              type="password"
+              value={passwordInput}
+              onChange={(e) => {
+                setPasswordInput(e.target.value);
+                setLoginError('');
+            }}
+              placeholder="비밀번호"
+              className="login-input"
+            />
+            {loginError && <span className="text-red-400 text-sm text-left pl-1">{loginError}</span>}
+            <button type="submit" className="login-btn">
+              접속하기
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
@@ -100,12 +168,12 @@ const App = () => {
 
       <header className="header flex justify-between items-center p-6 border-b border-glass shadow-lg">
         <div className="flex flex-col">
-          <h1 className="text-2xl font-bold tracking-tight">LG Sales Dashboard</h1>
-          <p className="text-xs text-muted">Powered by BigQuery</p>
+          <h1 className="text-2xl font-bold tracking-tight">The Look Ecommerce Sales Dashboard</h1>
+          <p className="text-xs text-muted">Powered by BigQuery thelook_ecommerce dataset</p>
         </div>
 
         <nav className="flex space-x-1 bg-glass-darker p-1 rounded-xl">
-          {tabs.map((tab) => (
+          {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab)}
@@ -122,16 +190,7 @@ const App = () => {
       </header>
 
       <main className="p-6">
-        {activeTab?.type === 'group' ? (
-          <GroupDashboard baselines={baselines} />
-        ) : (
-          <EntityDashboard 
-            key={activeTab?.id} 
-            entityName={activeTab?.entityName} 
-            displayName={activeTab?.label} 
-            baselines={baselines}
-          />
-        )}
+        {renderActiveView()}
       </main>
 
       <button 

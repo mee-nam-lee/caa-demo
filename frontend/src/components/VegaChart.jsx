@@ -28,19 +28,24 @@ const VegaChart = ({ spec, title }) => {
         padding: { left: 10, right: 30, top: 10, bottom: 10 }
       };
 
+      const isConcat = specWithoutTitle.hconcat || specWithoutTitle.vconcat || specWithoutTitle.concat;
+
       const modifiedSpec = {
         ...specWithoutTitle,
         background: '#000000',
-        width: effectiveWidth,
-        height: 250,
+        ...(isConcat ? {} : { width: effectiveWidth, height: 250 }),
         autosize: { type: 'fit', contains: 'padding' },
         config: {
           ...spec.config,
           background: '#000000',
           view: { 
             stroke: 'transparent', 
-            fill: '#000000' 
+            fill: '#000000'
           },
+          mark: {
+            clip: true
+          },
+          concat: { spacing: 20 },
           axis: {
             gridColor: 'rgba(255,255,255,0.05)',
             domainColor: 'rgba(255, 255, 255, 0.36)',
@@ -90,7 +95,18 @@ const VegaChart = ({ spec, title }) => {
   }, [spec]);
 
   // Robust title check
-  const displayTitle = title || "";
+  let specTitleValue = "";
+  if (spec?.title) {
+    if (typeof spec.title === 'string') {
+      specTitleValue = spec.title;
+    } else if (typeof spec.title === 'object' && spec.title.text) {
+      specTitleValue = Array.isArray(spec.title.text) 
+        ? spec.title.text.join(' ') 
+        : spec.title.text;
+    }
+  }
+
+  const displayTitle = specTitleValue || title || "";
 
   return (
     <div className="vega-chart-container mt-4 p-4 bg-black rounded-2xl border border-white/10 shadow-2xl w-full min-h-[350px]" style={{ backgroundColor: '#000000' }}>

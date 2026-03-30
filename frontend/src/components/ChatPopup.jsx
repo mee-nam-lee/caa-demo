@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, X, MessageSquare, Terminal, Lightbulb, Table as TableIcon, BarChart3, Maximize2, Minimize2, Sparkles, CornerDownRight, ChevronUp, ChevronDown } from 'lucide-react';
+import { Send, X, MessageSquare, Terminal, Lightbulb, Table as TableIcon, BarChart3, Maximize2, Minimize2, Sparkles, CornerDownRight, ChevronUp, ChevronDown, Loader2 } from 'lucide-react';
 import VegaChart from './VegaChart';
 
 const TypingIndicator = () => {
@@ -57,6 +57,45 @@ const formatValue = (val) => {
   return str;
 };
 
+const CollapsibleThinking = ({ thinking, isStreaming }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  if (!thinking) return null;
+
+  const lines = thinking.split('\n');
+  const blocks = [];
+  for (let i = 0; i < lines.length; i += 2) {
+    blocks.push({
+      title: lines[i] || '',
+      description: lines[i + 1] || ''
+    });
+  }
+
+  return (
+    <div className="thinking-container">
+      <div
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="flex items-center gap-1.5 text-[14px] text-white hover:text-gray-300 transition-colors py-1 cursor-pointer select-none w-fit"
+      >
+        {isStreaming && <Loader2 size={14} className="animate-spin text-white shrink-0" />}
+        <span className="font-medium whitespace-nowrap pl-1">{isExpanded ? 'Hide thinking' : 'Show thinking'}</span>
+        {isExpanded ? <ChevronUp size={16} className="shrink-0" /> : <ChevronDown size={16} className="shrink-0" />}
+      </div>
+
+      {isExpanded && (
+        <div className="mt-3 pl-4 border-l-[1.5px] border-[#ffffff15] flex flex-col gap-5 text-[13px] text-gray-300 py-1 animate-fade-in">
+          {blocks.map((block, idx) => (
+            <div key={idx} className="flex flex-col gap-1.5">
+              {block.title && <span className="font-bold text-[#e2e8f0] tracking-tight">{block.title}</span>}
+              {block.description && <span className="text-[#94a3b8] leading-relaxed text-[12.5px] whitespace-pre-line">{block.description}</span>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const PremiumTable = ({ header, rows }) => {
   return (
     <div className="premium-table-container my-6 animate-fade-in group">
@@ -88,12 +127,20 @@ const PremiumTable = ({ header, rows }) => {
   );
 };
 
+const decodeHTMLEntities = (text) => {
+  if (!text) return text;
+  const textArea = document.createElement('textarea');
+  textArea.innerHTML = text;
+  return textArea.value;
+};
+
 const SuggestionButton = ({ suggestion, onClick, sidx }) => {
   const [isHovered, setIsHovered] = useState(false);
+  const decodedSuggestion = decodeHTMLEntities(suggestion);
 
   return (
     <button
-      onClick={() => onClick(suggestion)}
+      onClick={() => onClick(decodedSuggestion)}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className="message bot group flex items-center gap-3 !p-3 transition-all text-left animate-fade-in cursor-pointer shadow-sm"
@@ -108,7 +155,7 @@ const SuggestionButton = ({ suggestion, onClick, sidx }) => {
     >
       <CornerDownRight size={16} className={`${isHovered ? 'text-red-500' : 'text-gray-500'} transition-colors shrink-0`} />
       <span className={`text-[13.5px] ${isHovered ? 'text-white underline' : 'text-gray-300'} transition-colors`} style={{ paddingLeft: '4px' }}>
-        {suggestion}
+        {decodedSuggestion}
       </span>
     </button>
   );
@@ -193,13 +240,19 @@ const FormattedMessage = ({ text }) => {
 
         let html = '';
         if (window.marked && window.DOMPurify) {
-          html = window.DOMPurify.sanitize(window.marked.parse(block.content, { breaks: true, gfm: true }));
+          let preprocessed = block.content;
+          // Fix potential escaped asterisks from AI
+          preprocessed = preprocessed.replace(/\\\*/g, '*');
+          // Force bolding for **text** to circumvent CJK suffix parsing bugs in marked.js
+          preprocessed = preprocessed.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+          html = window.DOMPurify.sanitize(window.marked.parse(preprocessed, { breaks: true, gfm: true }));
         }
 
         return (
           <div
             key={idx}
-            className="markdown-content text-[13.5px] leading-relaxed text-gray-200"
+            className="markdown-content text-[13.5px] leading-relaxed text-gray-300"
             dangerouslySetInnerHTML={{ __html: html }}
           />
         );
@@ -266,6 +319,20 @@ const ChatPopup = ({ onClose }) => {
 
   const conversationNameRef = useRef(null);
 
+  // Clear state when component unmounts (closed via toggle or other means)
+  useEffect(() => {
+    return () => {
+      setMessages([]);
+      setInput('');
+    };
+  }, []);
+
+  const handleClose = () => {
+    setMessages([]);
+    setInput('');
+    onClose();
+  };
+
   // Sync conversation name to ref for cleanup closure
   useEffect(() => {
     conversationNameRef.current = conversationName;
@@ -275,7 +342,7 @@ const ChatPopup = ({ onClose }) => {
     // Create/Get conversation on mount
     const initChat = async () => {
       try {
-        const staticId = "lg-sales-revenue";
+        const staticId = "thelook-ecommerce";
         const response = await fetch(`http://localhost:8000/api/chat/conversation/create?conversation_id=${staticId}`, {
           method: 'POST'
         });
@@ -290,9 +357,7 @@ const ChatPopup = ({ onClose }) => {
     initChat();
   }, []);
 
-  const handleClose = () => {
-    if (onClose) onClose();
-  };
+
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -318,6 +383,8 @@ const ChatPopup = ({ onClose }) => {
     setInput('');
     setIsLoading(true);
 
+    const fetchStartTime = performance.now();
+
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -332,35 +399,57 @@ const ChatPopup = ({ onClose }) => {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let lastFullResponse = null;
+
+      let buffer = '';
+      let isFirstChunk = true;
+      let totalFrontendLogicTime = 0;
 
       while (true) {
         const { value, done } = await reader.read();
-        if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        if (isFirstChunk && !done) {
+          const ttfb = performance.now() - fetchStartTime;
+          console.log(`%c[PERF] Network TTFB (Time To First Byte): ${ttfb.toFixed(2)} ms`, 'color: #00ff00; font-weight: bold;');
+          isFirstChunk = false;
+        }
 
-        for (const line of lines) {
-          if (line.trim().startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.trim().slice(6));
-              if (data.error) {
-                setMessages(prev => [...prev, { systemMessage: { text: `Error: ${data.error}` } }]);
-                continue;
-              }
+        if (done) {
+          const totalStreamTime = performance.now() - fetchStartTime;
+          console.log(`%c[PERF] Total API Request Time: ${totalStreamTime.toFixed(2)} ms`, 'color: #00ff00; font-weight: bold;');
+          console.log(`%c[PERF] Total Frontend Decoding & State Dispatch Time: ${totalFrontendLogicTime.toFixed(2)} ms`, 'color: #00bfff; font-weight: bold;');
+          break;
+        }
 
-              setMessages(prev => {
-                const current = [...prev];
-                const lastIdx = current.length - 1;
+        const logicStartTime = performance.now();
+        buffer += decoder.decode(value, { stream: true });
 
-                // Helper to extract text from the API's complex structure
-                const getNormalizedText = (chunk) => {
-                  if (chunk.systemMessage?.text?.parts) {
-                    return chunk.systemMessage.text.parts.join('\n');
-                  }
-                  return '';
-                };
+        // Process complete SSE events separated by \n\n
+        let boundary = buffer.indexOf('\n\n');
+        while (boundary !== -1) {
+          const eventString = buffer.slice(0, boundary);
+          buffer = buffer.slice(boundary + 2);
+
+          const lines = eventString.split('\n');
+          for (const line of lines) {
+            if (line.trim().startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.trim().slice(6));
+
+                if (data.error) {
+                  setMessages(prev => [...prev, { systemMessage: { text: `Error: ${data.error}` } }]);
+                  continue;
+                }
+
+                setMessages(prev => {
+                  const current = [...prev];
+                  const lastIdx = current.length - 1;
+
+                  const getNormalizedText = (chunk) => {
+                    if (chunk.systemMessage?.text?.parts) {
+                      return chunk.systemMessage.text.parts.join('\n');
+                    }
+                    return '';
+                  };
 
                 const textType = data.systemMessage?.text?.textType;
                 const partsText = getNormalizedText(data);
@@ -438,6 +527,9 @@ const ChatPopup = ({ onClose }) => {
             }
           }
         }
+          boundary = buffer.indexOf('\n\n');
+        }
+        totalFrontendLogicTime += (performance.now() - logicStartTime);
       }
     } catch (error) {
       console.error("Chat Error:", error);
@@ -497,16 +589,20 @@ const ChatPopup = ({ onClose }) => {
       }}
     >
       <style>{`
-        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
-          color: white;
+        .markdown-content strong, .markdown-content b {
+          color: #38bdf8;
           font-weight: 700;
-          margin-top: 1rem;
-          margin-bottom: 0.5rem;
-          line-height: 1.2;
         }
-        .markdown-content h1 { font-size: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.3rem; }
-        .markdown-content h2 { font-size: 1.1rem; }
-        .markdown-content h3 { font-size: 1rem; }
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+          color: #f8fafc;
+          font-weight: 700;
+          margin-top: 1.2rem;
+          margin-bottom: 0.6rem;
+          line-height: 1.3;
+        }
+        .markdown-content h1 { font-size: 1.4rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.4rem; }
+        .markdown-content h2 { font-size: 1.25rem; }
+        .markdown-content h3 { font-size: 1.15rem; }
         .markdown-content p { margin-bottom: 0.6rem; }
         .markdown-content ul, .markdown-content ol {
           margin-left: 1.2rem;
@@ -603,18 +699,43 @@ const ChatPopup = ({ onClose }) => {
             msg.systemMessage.text ||
             (msg.systemMessage.steps && msg.systemMessage.steps.length > 0) ||
             msg.systemMessage.insight ||
-            msg.systemMessage.chart
+            msg.systemMessage.chart ||
+            msg.thinking
           );
 
           if (!msg.userMessage && !hasBotContent) return null;
 
           return (
             <React.Fragment key={idx}>
-              <div className={`message ${msg.userMessage ? 'user' : 'bot'} ${!msg.userMessage && msg.systemMessage?.text ? 'has-content' : ''}`}>
-                <div className="message-content">
-                  {msg.userMessage && <div className="text-[14px]">{msg.userMessage.text}</div>}
-                  {msg.systemMessage && (
-                    <>
+              {/* User Message */}
+              {msg.userMessage && (
+                <div className="message user">
+                  <div className="message-content">
+                    <div className="text-[14px]">{msg.userMessage.text}</div>
+                  </div>
+                </div>
+              )}
+
+              {/* Thinking Phase Bubble (completely separate box) */}
+              {!msg.userMessage && msg.thinking && (
+                <div className="message bot has-content !mb-4">
+                  <div className="message-content !py-3">
+                    <CollapsibleThinking
+                      thinking={msg.thinking}
+                      isStreaming={isLoading && idx === messages.length - 1}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Main Response Bubble */}
+              {!msg.userMessage && msg.systemMessage && (
+                (msg.systemMessage.text ||
+                  (msg.systemMessage.steps && msg.systemMessage.steps.length > 0) ||
+                  msg.systemMessage.insight ||
+                  msg.systemMessage.chart) && (
+                  <div className={`message bot ${msg.systemMessage?.text ? 'has-content' : ''}`}>
+                    <div className="message-content">
                       {msg.systemMessage.text && <FormattedMessage text={msg.systemMessage.text} />}
 
                       {/* SQL Steps */}
@@ -663,10 +784,10 @@ const ChatPopup = ({ onClose }) => {
                           title={msg.systemMessage.chart.query || msg.systemMessage.chart.text || "Revenue Analysis"}
                         />
                       )}
-                    </>
-                  )}
-                </div>
-              </div>
+                    </div>
+                  </div>
+                )
+              )}
 
               {/* Individual Bot-Styled Suggestion Bubbles */}
               {!msg.userMessage && msg.suggestions && msg.suggestions.length > 0 && (
@@ -690,7 +811,8 @@ const ChatPopup = ({ onClose }) => {
           (!messages[messages.length - 1].systemMessage?.text &&
             (!messages[messages.length - 1].systemMessage?.steps?.length ||
               !messages[messages.length - 1].systemMessage?.steps.some(s => s.result)) &&
-            !messages[messages.length - 1].systemMessage?.insight)
+            !messages[messages.length - 1].systemMessage?.insight &&
+            !messages[messages.length - 1].thinking)
         ) && (
             <TypingIndicator />
           )}
