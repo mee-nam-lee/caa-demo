@@ -2,10 +2,10 @@
 
 A professional dashboard for tracking and analyzing Sales Revenue data, featuring an AI-powered Data Analytics Agent for conversational insights, automated chart generation, and interactive data tables.
 
-<img src="./dashboard_1.png" alt="Dashboard Preview" width="100%" />
+<img src="./static/dashboard_1.png" alt="Dashboard Preview" width="100%" />
 
 ### Converational Analytics (Data Agent)
-<img src="./dashboard_2.png" alt="Dashboard Preview" width="100%" />
+<img src="./static/dashboard_2.png" alt="Dashboard Preview" width="100%" />
 
 ## 🚀 Architecture
 - **Frontend**: React 19 + Vite + Tailwind CSS + Recharts + Vega-Lite
@@ -14,11 +14,11 @@ A professional dashboard for tracking and analyzing Sales Revenue data, featurin
 - **Dataset** : `bigquery-public-data.thelook_ecommerce`
 - **AI Engine**: Google Cloud Gemini `Conversational Analytics API` (BigQuery Agent)
 
-<img src="./data_agent.png" alt="Architecture Diagram" width="100%" />
+<img src="./static/data_agent.png" alt="Architecture Diagram" width="100%" />
 
 ### Architecture Diagram
 
-<img src="./architecture.png" alt="Architecture Diagram" width="70%" />
+<img src="./static/architecture.png" alt="Architecture Diagram" width="70%" />
 
 
 ---
