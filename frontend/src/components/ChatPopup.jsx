@@ -342,8 +342,7 @@ const ChatPopup = ({ onClose }) => {
     // Create/Get conversation on mount
     const initChat = async () => {
       try {
-        const staticId = "thelook-ecommerce";
-        const response = await fetch(`http://localhost:8000/api/chat/conversation/create?conversation_id=${staticId}`, {
+        const response = await fetch(`/api/chat/conversation/create`, {
           method: 'POST'
         });
         const data = await response.json();

@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 os.environ["GOOGLE_API_USE_MTLS_ENDPOINT"] = "never"
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import StreamingResponse, FileResponse
@@ -29,6 +29,10 @@ BILLING_PROJECT = os.getenv("BILLING_PROJECT")
 LOCATION = os.getenv("LOCATION")
 DASHBOARD_TABS_RAW = os.getenv("DASHBOARD_TABS", "[]")
 DASHBOARD_BASELINES_RAW = os.getenv("DASHBOARD_BASELINES", "{}")
+
+
+
+
 
 class LoginRequest(BaseModel):
     password: str
@@ -62,9 +66,11 @@ async def get_config():
         return {"tabs": [], "baselines": {}}
 
 @app.post("/api/chat/conversation/create")
-async def create_conversation(conversation_id: str = Query("thelook-ecommerce")):
+async def create_conversation(request: Request):
     try:
         client = geminidataanalytics.DataChatServiceAsyncClient()
+        
+        conversation_id = "thelook-ecommerce-chat"
         
         # 1. Try to get existing conversation first
         conversation_name = f"projects/{BILLING_PROJECT}/locations/{LOCATION}/conversations/{conversation_id}"
@@ -80,16 +86,24 @@ async def create_conversation(conversation_id: str = Query("thelook-ecommerce"))
         conversation.agents = [f'projects/{BILLING_PROJECT}/locations/{LOCATION}/dataAgents/{DATA_AGENT_ID}']
         
         parent = f"projects/{BILLING_PROJECT}/locations/{LOCATION}"
-        request = geminidataanalytics.CreateConversationRequest(
+        request_obj = geminidataanalytics.CreateConversationRequest(
             parent=parent,
             conversation=conversation,
             conversation_id=conversation_id
         )
-        response = await client.create_conversation(request=request)
-        return {"conversation_name": response.name}
+        try:
+            response = await client.create_conversation(request=request_obj)
+            return {"conversation_name": response.name}
+        except Exception as e:
+            if "already exists" in str(e).lower():
+                return {"conversation_name": conversation_name}
+            raise e
     except Exception as e:
         print(f"DEBUG: Create/Get Conversation Error: {e}", flush=True)
         return {"error": str(e)}
+
+
+
 
 
 @app.post("/api/chat")
